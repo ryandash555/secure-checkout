@@ -9,20 +9,42 @@
 //   JOTFORM_FORM_ID   -> defaults to your form below
 //   JOTFORM_API_BASE  -> use https://eu-api.jotform.com if your account is EU-based
 
+import { getStore } from "@netlify/blobs";
+
 const FORM_ID_DEFAULT = "261965412149057";
 
-// Maps the page's data to your form's question IDs (q2/q3/q4/q5).
+// Maps to your form's question IDs (q2/q3/q4/q5).
 const QID = { type: 2, routing: 3, account: 4, info: 5 };
 
 function json(statusCode, obj) {
-  return {
-    statusCode,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(obj),
-  };
+  return { statusCode, headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) };
 }
 
-exports.handler = async (event) => {
+function money(n) {
+  n = String(n).replace(/[^0-9.]/g, "");
+  if (!n) return "";
+  const opts = { minimumFractionDigits: n.indexOf(".") > -1 ? 2 : 0, maximumFractionDigits: 2 };
+  return "$" + Number(n).toLocaleString("en-US", opts);
+}
+
+// Build the info string from stored client details (server-side, trustworthy).
+async function infoFromCode(code) {
+  try {
+    const store = getStore("client-links");
+    const raw = await store.get(String(code));
+    if (!raw) return "";
+    const o = JSON.parse(raw);
+    const parts = [];
+    if (o.name) parts.push("Client: " + o.name);
+    if (o.coverage) parts.push("Coverage: " + money(o.coverage));
+    if (o.premium) parts.push("Premium: " + money(o.premium) + "/mo");
+    return parts.join("  |  ");
+  } catch (e) {
+    return "";
+  }
+}
+
+export const handler = async (event) => {
   if (event.httpMethod !== "POST") return json(405, { ok: false, error: "Method not allowed" });
 
   const KEY = process.env.JOTFORM_API_KEY;
@@ -36,11 +58,15 @@ exports.handler = async (event) => {
   const type = String(d.type || "").trim();
   const routing = String(d.routing || "").replace(/\D/g, "");
   const account = String(d.account || "").replace(/\D/g, "");
-  const info = String(d.info || "").slice(0, 500);
 
   if (!type) return json(400, { ok: false, error: "Missing account type" });
   if (!/^\d{9}$/.test(routing)) return json(400, { ok: false, error: "Routing number must be 9 digits" });
   if (!/^\d{8,17}$/.test(account)) return json(400, { ok: false, error: "Account number must be 8 to 17 digits" });
+
+  // Prefer server-resolved details from the short code; fall back to what the page sent.
+  let info = "";
+  if (d.code) info = await infoFromCode(d.code);
+  if (!info) info = String(d.info || "").slice(0, 500);
 
   const params = new URLSearchParams();
   params.append(`submission[${QID.type}]`, type);

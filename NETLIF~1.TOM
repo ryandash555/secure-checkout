@@ -1,0 +1,13 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Clean hidden-code links: /c/<code> serves the checkout page,
+# which reads the code itself. Keeps client details out of the visible URL.
+[[redirects]]
+  from = "/c/*"
+  to = "/index.html"
+  status = 200
