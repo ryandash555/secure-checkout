@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Secure Checkout</title>
+<style>
+  :root{
+    --teal:#0f6b62;--teal-dark:#0b5049;--ink:#1f2a2e;--muted:#6b7a80;
+    --line:#e4e9ea;--bg:#eef1f1;--card:#ffffff;--panel:#f6f8f8;--error:#c0392b;--ok:#0f6b62;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(120deg,#dfeae7 0%,#eef1f1 45%);color:var(--ink);min-height:100vh;}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 60px;display:grid;grid-template-columns:1.15fr 1fr;gap:26px;align-items:start;}
+  @media (max-width:880px){.wrap{grid-template-columns:1fr;}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .pad{padding:26px 30px;}
+  h1{font-size:26px;line-height:1.25;margin:6px 0 0;font-weight:700;letter-spacing:-.3px;}
+  .eyebrow{font-size:15px;color:var(--muted);font-weight:600;}
+  .section{border-top:1px solid var(--line);}
+  .section:first-child{border-top:none;}
+  .sectionhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .sectionhead h2{font-size:18px;margin:0;font-weight:700;}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;font-size:15px;}
+  .row .label{color:var(--ink);}
+  .row .sub{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;}
+  .row .val{font-weight:700;font-size:16px;text-align:right;}
+  .benef{display:flex;align-items:center;gap:9px;font-size:15px;margin-top:4px;}
+  .avatar{width:22px;height:22px;border-radius:50%;border:1.6px solid var(--muted);display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;}
+  .secure-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .secure-top .title{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;}
+  .badges{display:flex;gap:8px;}
+  .badge{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:10px;font-weight:700;color:#4a5a5f;display:flex;align-items:center;gap:5px;background:#fbfcfc;}
+  .badge .dot{width:14px;height:14px;border-radius:50%;background:#f2c200;display:inline-block;}
+  .badge.ssl .dot{background:var(--teal);}
+  .paybox{border:1px solid var(--line);border-radius:12px;padding:22px;margin-top:16px;}
+  .paybox h3{color:var(--teal);margin:0 0 4px;font-size:19px;}
+  .paybox .note{color:var(--muted);font-size:13.5px;margin:0 0 16px;}
+  label.f{display:block;font-weight:700;font-size:13.5px;margin:14px 0 6px;}
+  select,input[type=text]{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:9px;font-size:15px;color:var(--ink);background:#fff;}
+  select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,107,98,.12);}
+  input::placeholder{color:#b7c1c3;}
+  .field-err{color:var(--error);font-size:12.5px;margin-top:5px;display:none;}
+  .field.invalid input{border-color:var(--error);}
+  .field.invalid .field-err{display:block;}
+  .check-ill{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:18px;background:#fff;}
+  .check-ill svg{width:100%;height:auto;display:block;}
+  .helper{color:var(--muted);font-size:13px;margin-top:12px;}
+  .totalbar{display:flex;justify-content:space-between;align-items:center;margin-top:22px;padding-top:6px;}
+  .totalbar .tot-label{color:var(--muted);font-size:15px;}
+  .totalbar .tot-amt{font-size:30px;font-weight:800;letter-spacing:-.5px;}
+  .guarantee{display:flex;align-items:center;gap:12px;}
+  .seal{width:58px;height:58px;border-radius:50%;border:2px dashed var(--teal);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--teal);font-weight:800;line-height:1;flex:0 0 auto;}
+  .seal .n{font-size:19px;}
+  .seal .d{font-size:8px;letter-spacing:.5px;}
+  .guarantee .g-title{font-weight:700;font-size:14px;}
+  .guarantee .g-sub{color:var(--muted);font-size:12.5px;}
+  .submit{width:100%;margin-top:20px;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;transition:background .15s;}
+  .submit:hover{background:var(--teal-dark);}
+  .submit:disabled{opacity:.6;cursor:not-allowed;}
+  #submitError{color:var(--error);font-size:13px;text-align:center;margin-top:12px;display:none;}
+  .trust{display:flex;align-items:center;gap:7px;justify-content:center;color:var(--muted);font-size:12.5px;margin-top:12px;}
+  .success{display:none;text-align:center;padding:26px 6px 6px;}
+  .success .ico{width:52px;height:52px;border-radius:50%;background:#e6f2f0;color:var(--teal);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:26px;}
+  .success h3{margin:0 0 6px;color:var(--ink);font-size:20px;}
+  .success p{color:var(--muted);font-size:14px;margin:0;}
+  .lockrow{display:flex;align-items:center;gap:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- LEFT: policy summary -->
+  <div class="card">
+    <div class="pad" style="padding-bottom:8px;">
+      <div class="eyebrow">Last step!</div>
+      <h1 id="headline">You're a step away from covering your client</h1>
+    </div>
+
+    <div class="section pad">
+      <div class="sectionhead"><h2>Policy details</h2></div>
+      <div class="row"><span class="label">Coverage</span><span class="val" id="v-coverage">$39,000</span></div>
+      <div class="row"><span class="label">Premium</span><span class="val" id="v-premium">$89.19/mo</span></div>
+    </div>
+
+    <div class="section pad">
+      <div class="sectionhead"><h2>Premium schedule</h2></div>
+      <div class="row">
+        <span class="label">Coverage start date<span class="sub">First premium paid on this date</span></span>
+        <span class="val" id="v-start">August 4th, 2026</span>
+      </div>
+      <div class="row"><span class="label">Recurring schedule</span><span class="val" id="v-recurring">4th of every month</span></div>
+      <div class="row"><span class="label">Payment dates</span><span class="val" id="v-next">September 4th, 2026</span></div>
+    </div>
+
+    <div class="section pad">
+      <div class="sectionhead"><h2>Primary beneficiaries</h2></div>
+      <div class="benef"><span class="avatar">&#128100;</span><span id="v-beneficiary">Mariah Espocito (Child)</span></div>
+    </div>
+
+    <div class="section pad">
+      <div class="sectionhead"><h2>Included benefits</h2></div>
+      <div class="row" style="color:var(--muted);font-size:14px;">Full benefit details provided with your policy documents.</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: secure checkout -->
+  <div class="card">
+    <div class="pad">
+      <div class="secure-top">
+        <div class="title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f6b62" stroke-width="2"><path d="M12 2l7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          Secure checkout
+        </div>
+        <div class="badges">
+          <span class="badge"><span class="dot"></span>NORTON<br>SECURED</span>
+          <span class="badge ssl"><span class="dot"></span>Certified SSL<br>SECURITY</span>
+        </div>
+      </div>
+
+      <div class="paybox">
+        <h3>Pay with bank account</h3>
+        <p class="note">Policy owner and premium payor must be the same.</p>
+
+        <form id="pay-form" novalidate>
+          <label class="f" for="acctType">Account type</label>
+          <div class="field">
+            <select id="acctType" name="account_type" required>
+              <option value="" disabled selected>Select account type</option>
+              <option>Checking</option>
+              <option>Savings</option>
+            </select>
+            <div class="field-err">Please select an account type.</div>
+          </div>
+
+          <label class="f" for="routing">Routing number</label>
+          <div class="field">
+            <input type="text" id="routing" name="routing_number" inputmode="numeric" autocomplete="off" placeholder="000000000" maxlength="9" required />
+            <div class="field-err">Routing number must be 9 digits.</div>
+          </div>
+
+          <label class="f" for="account">Bank account number</label>
+          <div class="field">
+            <input type="text" id="account" name="account_number" inputmode="numeric" autocomplete="off" placeholder="0000000000" maxlength="17" required />
+            <div class="field-err">Account number must be 8 to 17 digits.</div>
+          </div>
+
+          <div class="check-ill">
+            <svg viewBox="0 0 460 150" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="4" width="452" height="120" rx="6" fill="#fff" stroke="#dfe6e6"/>
+              <text x="20" y="34" font-size="11" fill="#8a9699" font-style="italic">Pay to the</text>
+              <text x="20" y="47" font-size="11" fill="#8a9699" font-style="italic">order of</text>
+              <rect x="300" y="24" width="120" height="26" rx="3" fill="#fff" stroke="#dfe6e6"/>
+              <text x="308" y="41" font-size="13" fill="#8a9699">$</text>
+              <circle cx="26" cy="78" r="7" fill="none" stroke="#8a9699"/>
+              <text x="40" y="82" font-size="12" fill="#4a5a5f">Checking Bank</text>
+              <text x="30" y="112" font-size="15" fill="#33454a" font-family="monospace" letter-spacing="2">&#9286;123456789&#9286;  123456789000&#9286;  1234</text>
+              <line x1="70" y1="118" x2="70" y2="132" stroke="#e0863a"/>
+              <line x1="235" y1="118" x2="235" y2="132" stroke="#e0863a"/>
+              <text x="30" y="146" font-size="10" fill="#e0863a" font-weight="700">Routing number (9 digit)</text>
+              <text x="250" y="146" font-size="10" fill="#e0863a" font-weight="700">Account number (8 to 17 digit)</text>
+            </svg>
+          </div>
+          <p class="helper">ACH routing number &amp; account number can be found at the bottom of a personal check.</p>
+
+          <button type="submit" class="submit" id="submitBtn">Submit securely</button>
+          <div id="submitError"></div>
+          <div class="trust lockrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7a80" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            Encrypted &amp; transmitted securely. Your information is never shared.
+          </div>
+        </form>
+
+        <div class="success" id="success">
+          <div class="ico">&#10003;</div>
+          <h3>Information received</h3>
+          <p>Thank you. Your agent will finalize your policy shortly. You can close this window.</p>
+        </div>
+      </div>
+
+      <div class="totalbar">
+        <div>
+          <div class="tot-label">Total payment due</div>
+          <div class="tot-amt" id="v-total">$89.19</div>
+        </div>
+        <div class="guarantee">
+          <div class="seal"><span class="n">30</span><span class="d">DAY</span></div>
+          <div>
+            <div class="g-title">Money back guarantee</div>
+            <div class="g-sub">No questions, no fees, just your money back.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Policy details are read from the link's parameters (built with link-builder.html).
+   Bank details post to our own secure relay at /.netlify/functions/submit, which
+   forwards to Jotform's API server-side. The client only sees "received" if it
+   truly landed in your encrypted Jotform inbox. */
+
+var p = new URLSearchParams(location.search);
+function money(n){ n = String(n).replace(/[^0-9.]/g,""); if(!n) return ""; return "$" + Number(n).toLocaleString("en-US",{minimumFractionDigits:(n.indexOf(".")>-1?2:0),maximumFractionDigits:2}); }
+function setText(id,val){ if(val!=null && val!=="") document.getElementById(id).textContent = val; }
+
+if(p.get("name"))        setText("headline", "You're a step away from covering " + p.get("name").split(" ")[0]);
+if(p.get("coverage"))    setText("v-coverage", money(p.get("coverage")));
+if(p.get("premium")){    setText("v-premium", money(p.get("premium")) + "/mo"); setText("v-total", money(p.get("premium"))); }
+setText("v-start",       p.get("start"));
+setText("v-recurring",   p.get("recurring"));
+setText("v-next",        p.get("next"));
+setText("v-beneficiary", p.get("beneficiary"));
+
+var form = document.getElementById("pay-form");
+var routing = document.getElementById("routing");
+var account = document.getElementById("account");
+var acctType = document.getElementById("acctType");
+
+[routing,account].forEach(function(el){
+  el.addEventListener("input", function(){ el.value = el.value.replace(/[^0-9]/g,""); markValid(el); });
+});
+acctType.addEventListener("change", function(){ markValid(acctType); });
+
+function fieldOf(el){ return el.closest(".field"); }
+function markValid(el){ if(isValid(el)) fieldOf(el).classList.remove("invalid"); }
+function isValid(el){
+  if(el===acctType) return acctType.value !== "";
+  if(el===routing)  return /^\d{9}$/.test(routing.value);
+  if(el===account)  return /^\d{8,17}$/.test(account.value);
+  return true;
+}
+
+form.addEventListener("submit", function(e){
+  e.preventDefault();
+  var ok = true;
+  [acctType,routing,account].forEach(function(el){
+    if(!isValid(el)){ fieldOf(el).classList.add("invalid"); ok = false; }
+  });
+  if(ok) submitSecure();
+});
+
+function submitSecure(){
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true; btn.textContent = "Submitting...";
+  document.getElementById("submitError").style.display = "none";
+
+  var info = [];
+  if(p.get("name"))     info.push("Client: " + p.get("name"));
+  if(p.get("coverage")) info.push("Coverage: " + money(p.get("coverage")));
+  if(p.get("premium"))  info.push("Premium: " + money(p.get("premium")) + "/mo");
+
+  fetch("/.netlify/functions/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: acctType.value,
+      routing: routing.value,
+      account: account.value,
+      info: info.join("  |  ")
+    })
+  })
+  .then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(j){ return { ok: r.ok && j.ok, err: j.error }; });
+  })
+  .then(function(res){ res.ok ? showSuccess() : fail(res.err); })
+  .catch(function(){ fail(); });
+}
+
+function fail(msg){
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = false; btn.textContent = "Submit securely";
+  var e = document.getElementById("submitError");
+  e.textContent = msg ? ("Couldn't submit: " + msg + ". Please check your details or call your agent.")
+                      : "Something went wrong. Please try again, or call your agent to finish by phone.";
+  e.style.display = "block";
+}
+
+function showSuccess(){
+  form.style.display = "none";
+  document.getElementById("submitError").style.display = "none";
+  document.getElementById("success").style.display = "block";
+}
+</script>
+</body>
+</html>
