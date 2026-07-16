@@ -83,7 +83,7 @@ export const handler = async (event) => {
   try { d = JSON.parse(event.body || "{}"); } catch (e) { return json(400, { ok: false, error: "Bad request" }); }
   if (d.adminKey !== ADMIN) return json(401, { ok: false, error: "Not authorized" });
 
-  const agents = getStore("agents");
+  const agents = getStore({ name: "agents", consistency: "strong" });
   const action = d.action;
 
   if (action === "list") {
