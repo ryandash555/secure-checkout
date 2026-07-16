@@ -4,7 +4,7 @@
 // Required Netlify environment variable:
 //   AGENT_KEY  -> a password only you know (also pasted into your local link-builder.html)
 
-import { getStore } from "@netlify/blobs";
+import { connectLambda, getStore } from "@netlify/blobs";
 
 function json(statusCode, obj) {
   return {
@@ -20,13 +20,14 @@ function json(statusCode, obj) {
 }
 
 function makeCode() {
-  const alphabet = "23456789abcdefghjkmnpqrstuvwxyz"; // no easily-confused characters
+  const alphabet = "23456789abcdefghjkmnpqrstuvwxyz";
   let s = "";
   for (let i = 0; i < 6; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
   return s;
 }
 
 export const handler = async (event) => {
+  connectLambda(event);
   if (event.httpMethod === "OPTIONS") return json(200, {});
   if (event.httpMethod !== "POST") return json(405, { ok: false, error: "Method not allowed" });
 
