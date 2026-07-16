@@ -5,9 +5,19 @@
 [functions]
   node_bundler = "esbuild"
 
-# Clean hidden-code links: /c/<code> serves the checkout page,
-# which reads the code itself. Keeps client details out of the visible URL.
+# Clean hidden-code checkout links: /c/<code> serves the checkout page.
 [[redirects]]
   from = "/c/*"
   to = "/index.html"
+  status = 200
+
+# Friendly paths for the private tools.
+[[redirects]]
+  from = "/builder"
+  to = "/builder.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
   status = 200

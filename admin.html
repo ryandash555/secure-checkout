@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agent Admin</title>
+<style>
+  :root{--teal:#0f6b62;--teal-dark:#0b5049;--ink:#1f2a2e;--muted:#6b7a80;--line:#e4e9ea;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#eef1f1;color:var(--ink);padding:30px 16px;}
+  .card{max-width:640px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px 30px;}
+  h1{font-size:22px;margin:0 0 4px;}
+  h2{font-size:16px;margin:22px 0 0;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 20px;}
+  label{display:block;font-weight:700;font-size:13px;margin:14px 0 6px;}
+  input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;font-size:15px;background:#fff;}
+  input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,107,98,.12);}
+  .hint{color:var(--muted);font-size:12px;margin-top:4px;}
+  button{margin-top:18px;width:100%;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;}
+  button:hover{background:var(--teal-dark);}
+  button:disabled{opacity:.6;cursor:not-allowed;}
+  .row2{display:flex;gap:8px;align-items:end;}
+  .row2 button{width:auto;margin:0;padding:11px 14px;font-size:14px;}
+  .keyout{background:#eef7f5;border:1px solid #cfe8e2;border-radius:9px;padding:12px 14px;margin-top:12px;font-size:13px;display:none;word-break:break-all;}
+  .keyout code{font-size:14px;}
+  .agent{border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .agent .meta{font-size:13px;word-break:break-all;}
+  .agent .rm{width:auto;margin:0;background:#fdecea;color:#c0392b;padding:8px 12px;font-size:13px;}
+  .agent .rm:hover{background:#f8d7d2;}
+  .refresh{background:#eaf2f0;color:var(--teal);}
+  code{background:#f2f5f5;padding:1px 5px;border-radius:5px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Agent admin</h1>
+  <p class="sub">Add each agent's Jotform so their clients' submissions land in their own inbox.</p>
+
+  <label for="adminKey">Admin key</label>
+  <input id="adminKey" type="password" placeholder="your ADMIN_KEY from Netlify" />
+  <div class="hint">Saved on this device after the first time.</div>
+
+  <h2>Add an agent</h2>
+  <label for="aname">Agent name</label>
+  <input id="aname" type="text" placeholder="Jane Agent" />
+
+  <label for="akey">Agent key (their password)</label>
+  <div class="row2">
+    <input id="akey" type="text" placeholder="leave blank to auto-generate" />
+    <button type="button" onclick="genKey()">Generate</button>
+  </div>
+
+  <label for="ajot">Their Jotform API key</label>
+  <input id="ajot" type="text" placeholder="from their Jotform: Settings &gt; API" />
+
+  <label for="aform">Their form ID</label>
+  <input id="aform" type="text" placeholder="the number in their form's URL" />
+
+  <button id="addBtn" onclick="addAgent()">Add agent</button>
+  <div class="keyout" id="keyout"></div>
+
+  <h2>Agents</h2>
+  <div id="list"><div class="hint">Enter your admin key, then Refresh.</div></div>
+  <button type="button" class="refresh" onclick="loadAgents()">Refresh list</button>
+</div>
+
+<script>
+function val(id){ return document.getElementById(id).value.trim(); }
+try { var s = localStorage.getItem("sc_admin"); if(s) document.getElementById("adminKey").value = s; } catch(e){}
+function base(){ return location.protocol.indexOf("http")===0 ? location.origin : ""; }
+
+function api(body){
+  var ak = val("adminKey");
+  if(!ak){ alert("Enter your admin key first."); return Promise.reject(); }
+  try { localStorage.setItem("sc_admin", ak); } catch(e){}
+  body.adminKey = ak;
+  return fetch(base() + "/.netlify/functions/agents", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+  }).then(function(r){ return r.json().then(function(j){ return { status:r.status, j:j }; }); });
+}
+
+function genKey(){
+  var a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789", s = "";
+  for(var i=0;i<20;i++) s += a[Math.floor(Math.random()*a.length)];
+  document.getElementById("akey").value = s;
+}
+
+function addAgent(){
+  var name=val("aname"), jot=val("ajot"), form=val("aform"), key=val("akey");
+  if(!name||!jot||!form){ alert("Name, Jotform API key, and form ID are required."); return; }
+  var btn=document.getElementById("addBtn"); btn.disabled=true; btn.textContent="Adding...";
+  api({ action:"add", name:name, jotformApiKey:jot, formId:form, agentKey:key }).then(function(res){
+    btn.disabled=false; btn.textContent="Add agent";
+    if(res.j && res.j.ok){
+      var ko=document.getElementById("keyout"); ko.style.display="block";
+      ko.innerHTML = "Agent added. Give <b>"+name+"</b> this agent key to use in the link builder:<br><code>"+res.j.agentKey+"</code>";
+      document.getElementById("aname").value=""; document.getElementById("ajot").value=""; document.getElementById("aform").value=""; document.getElementById("akey").value="";
+      loadAgents();
+    } else if(res.status===401){ alert("Admin key rejected."); }
+    else { alert("Couldn't add: " + ((res.j && res.j.error) || "unknown error")); }
+  }).catch(function(){ btn.disabled=false; btn.textContent="Add agent"; });
+}
+
+function loadAgents(){
+  api({ action:"list" }).then(function(res){
+    var el=document.getElementById("list");
+    if(!(res.j && res.j.ok)){ el.innerHTML = '<div class="hint">' + (res.status===401 ? "Admin key rejected." : "Couldn't load.") + '</div>'; return; }
+    if(!res.j.agents.length){ el.innerHTML = '<div class="hint">No agents yet.</div>'; return; }
+    el.innerHTML="";
+    res.j.agents.forEach(function(a){
+      var row=document.createElement("div"); row.className="agent";
+      var meta=document.createElement("div"); meta.className="meta";
+      meta.innerHTML = "<b>"+a.name+"</b><br>key: <code>"+a.agentKey+"</code><br>form: "+a.formId+" &middot; api: "+a.apiKeyMasked;
+      var rm=document.createElement("button"); rm.className="rm"; rm.textContent="Remove";
+      rm.onclick=function(){ if(!confirm("Remove "+a.name+"?")) return; api({ action:"remove", agentKey:a.agentKey }).then(loadAgents); };
+      row.appendChild(meta); row.appendChild(rm); el.appendChild(row);
+    });
+  }).catch(function(){});
+}
+</script>
+</body>
+</html>
