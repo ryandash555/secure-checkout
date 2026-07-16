@@ -9,7 +9,7 @@
 //   JOTFORM_FORM_ID   -> defaults to your form below
 //   JOTFORM_API_BASE  -> use https://eu-api.jotform.com if your account is EU-based
 
-import { getStore } from "@netlify/blobs";
+import { connectLambda, getStore } from "@netlify/blobs";
 
 const FORM_ID_DEFAULT = "261965412149057";
 
@@ -45,6 +45,7 @@ async function infoFromCode(code) {
 }
 
 export const handler = async (event) => {
+  connectLambda(event);
   if (event.httpMethod !== "POST") return json(405, { ok: false, error: "Method not allowed" });
 
   const KEY = process.env.JOTFORM_API_KEY;
