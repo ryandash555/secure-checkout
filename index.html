@@ -75,7 +75,7 @@
   <div class="card">
     <div class="pad" style="padding-bottom:8px;">
       <div class="eyebrow">Last step!</div>
-      <h1 id="headline">You're a step away from covering your client</h1>
+      <h1 id="headline">You're a step away from getting covered</h1>
     </div>
 
     <div class="section pad">
@@ -96,7 +96,7 @@
 
     <div class="section pad">
       <div class="sectionhead"><h2>Primary beneficiaries</h2></div>
-      <div class="benef"><span class="avatar">&#128100;</span><span id="v-beneficiary">Mariah Espocito (Child)</span></div>
+      <div id="v-beneficiaries"><div class="benef"><span class="avatar">&#128100;</span><span id="v-beneficiary">Mariah Espocito (Child)</span></div></div>
     </div>
 
     <div class="section pad">
@@ -137,7 +137,7 @@
           <label class="f" for="routing">Routing number</label>
           <div class="field">
             <input type="text" id="routing" name="routing_number" inputmode="numeric" autocomplete="off" placeholder="000000000" maxlength="9" required />
-            <div class="field-err">Routing number must be 9 digits.</div>
+            <div class="field-err">Please enter a valid 9-digit routing number.</div>
           </div>
 
           <label class="f" for="account">Bank account number</label>
@@ -214,7 +214,7 @@ var qp = new URLSearchParams(location.search);
 var p = qp; // kept for the submit-info fallback in legacy query mode
 
 function populate(get){
-  if(get("name"))     setText("headline", "You're a step away from covering " + String(get("name")).split(" ")[0]);
+  if(get("name"))     setText("headline", "You're a step away from getting covered, " + String(get("name")).split(" ")[0]);
   if(get("coverage")) setText("v-coverage", money(get("coverage")));
   if(get("premium")){ setText("v-premium", money(get("premium")) + "/mo"); setText("v-total", money(get("premium"))); }
   setText("v-start",       get("start"));
@@ -223,16 +223,30 @@ function populate(get){
   setText("v-beneficiary", get("beneficiary"));
 }
 
+function renderBens(list, single){
+  var arr = (list && list.length) ? list.slice() : (single ? [single] : null);
+  if(!arr || !arr.length) return;
+  var c = document.getElementById("v-beneficiaries");
+  c.innerHTML = "";
+  arr.forEach(function(b){
+    var row = document.createElement("div"); row.className = "benef";
+    var av = document.createElement("span"); av.className = "avatar"; av.innerHTML = "&#128100;";
+    var sp = document.createElement("span"); sp.textContent = b;
+    row.appendChild(av); row.appendChild(sp); c.appendChild(row);
+  });
+}
+
 (function init(){
   var m = location.pathname.match(/\/c\/([0-9a-z]{4,12})$/i);
   if(m){
     CLIENT_CODE = m[1];
     fetch("/.netlify/functions/resolve?code=" + encodeURIComponent(CLIENT_CODE))
       .then(function(r){ return r.json(); })
-      .then(function(j){ if(j && j.ok && j.details){ var o = j.details; populate(function(k){ return (o[k]!=null && o[k]!=="") ? o[k] : null; }); } })
+      .then(function(j){ if(j && j.ok && j.details){ var o = j.details; populate(function(k){ return (o[k]!=null && o[k]!=="") ? o[k] : null; }); renderBens(o.beneficiaries, o.beneficiary); } })
       .catch(function(){});
   } else {
     populate(function(k){ return qp.get(k); });
+    renderBens(null, qp.get("beneficiary"));
   }
 })();
 
@@ -248,9 +262,15 @@ acctType.addEventListener("change", function(){ markValid(acctType); });
 
 function fieldOf(el){ return el.closest(".field"); }
 function markValid(el){ if(isValid(el)) fieldOf(el).classList.remove("invalid"); }
+function validRouting(r){
+  if(!/^\d{9}$/.test(r)) return false;
+  var d = r.split("").map(Number);
+  var sum = 3*(d[0]+d[3]+d[6]) + 7*(d[1]+d[4]+d[7]) + (d[2]+d[5]+d[8]);
+  return sum % 10 === 0;
+}
 function isValid(el){
   if(el===acctType) return acctType.value !== "";
-  if(el===routing)  return /^\d{9}$/.test(routing.value);
+  if(el===routing)  return validRouting(routing.value);
   if(el===account)  return /^\d{8,17}$/.test(account.value);
   return true;
 }
@@ -308,4 +328,3 @@ function showSuccess(){
 </script>
 </body>
 </html>
-
