@@ -39,7 +39,7 @@ export const handler = async (event) => {
   if (process.env.AGENT_KEY && agentKey === process.env.AGENT_KEY) {
     agentId = "owner";
   } else {
-    const agents = getStore({ name: "agents", consistency: "strong" });
+    const agents = getStore("agents");
     const rec = await agents.get(agentKey);
     if (rec) agentId = agentKey;
   }
