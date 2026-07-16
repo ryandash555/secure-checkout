@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Checkout Link Builder</title>
+<style>
+  :root{--teal:#0f6b62;--teal-dark:#0b5049;--ink:#1f2a2e;--muted:#6b7a80;--line:#e4e9ea;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#eef1f1;color:var(--ink);padding:30px 16px;}
+  .card{max-width:640px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px 30px;}
+  h1{font-size:22px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 20px;}
+  label{display:block;font-weight:700;font-size:13px;margin:14px 0 6px;}
+  input,select{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;font-size:15px;background:#fff;}
+  input:focus,select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,107,98,.12);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+  .grid3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:0 10px;}
+  .hint{color:var(--muted);font-size:12px;margin-top:4px;}
+  button{margin-top:22px;width:100%;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;}
+  button:hover{background:var(--teal-dark);}
+  .out{margin-top:20px;display:none;}
+  .out textarea{width:100%;height:88px;padding:12px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:monospace;resize:vertical;}
+  .copybtn{margin-top:10px;background:#eaf2f0;color:var(--teal);}
+  .copybtn:hover{background:#dceae7;}
+  .note{background:#f6f8f8;border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-size:12.5px;color:var(--muted);margin-top:18px;}
+  .benrow{display:grid;grid-template-columns:1fr 0.8fr auto;gap:0 8px;margin-bottom:8px;align-items:center;}
+  .benrow input,.benrow select{margin:0;}
+  .ben-x{margin:0;width:auto;background:#f0f0f0;color:#888;padding:10px 12px;font-size:16px;border-radius:9px;line-height:1;}
+  .ben-x:hover{background:#e2e2e2;}
+  .addben{margin-top:8px;background:#eaf2f0;color:var(--teal);padding:10px;font-size:14px;}
+  .addben:hover{background:#dceae7;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Checkout link builder</h1>
+  <p class="sub">Fill in the client's approved policy, then copy the personalized link to text them.</p>
+
+  <label for="base">Your site address</label>
+  <input id="base" type="text" placeholder="https://your-site.netlify.app" />
+  <div class="hint">Your site's home address (Netlify link or your custom domain). No trailing path needed.</div>
+
+  <label for="agentKey">Agent key</label>
+  <input id="agentKey" type="password" placeholder="the AGENT_KEY you set in Netlify" />
+  <div class="hint">Same value as the AGENT_KEY variable in your Netlify site. Saved on this device after the first time.</div>
+
+  <label for="name">Client name</label>
+  <input id="name" type="text" placeholder="John Doe" />
+
+  <div class="grid">
+    <div><label for="coverage">Coverage amount ($)</label><input id="coverage" type="text" inputmode="numeric" placeholder="39000" /></div>
+    <div><label for="premium">Monthly premium ($)</label><input id="premium" type="text" inputmode="decimal" placeholder="89.19" /></div>
+  </div>
+
+  <label>Coverage start date</label>
+  <div class="grid3">
+    <select id="startMonth"></select>
+    <select id="startDay"></select>
+    <select id="startYear"></select>
+  </div>
+  <div class="hint">The recurring monthly draft date is set automatically from this day.</div>
+
+  <label>Next payment date</label>
+  <div class="grid3">
+    <select id="nextMonth"></select>
+    <select id="nextDay"></select>
+    <select id="nextYear"></select>
+  </div>
+
+  <label>Primary beneficiaries</label>
+  <div id="benWrap"></div>
+  <button type="button" class="addben" onclick="addBen()">+ Add another beneficiary</button>
+
+  <button id="genBtn" onclick="build()">Generate link</button>
+
+  <div class="out" id="out">
+    <label>Personalized link</label>
+    <textarea id="url" readonly></textarea>
+    <button class="copybtn" onclick="copyLink()">Copy link</button>
+  </div>
+
+  <div class="note">Reminder: this link only collects the info into your secure form inbox. It never sends bank numbers by text. You retrieve them from your login-protected form, key them into the carrier app, then delete the entry.</div>
+</div>
+
+<script>
+var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function ord(n){ n=parseInt(n,10); var s=["th","st","nd","rd"], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function opt(value,label){ var o=document.createElement("option"); o.value=value; o.textContent=label; return o; }
+
+(function fillSelects(){
+  var yNow=new Date().getFullYear();
+  [["startMonth","Month"],["nextMonth","Month"]].forEach(function(p){
+    var sel=document.getElementById(p[0]); sel.appendChild(opt("",p[1]));
+    MONTHS.forEach(function(m,i){ sel.appendChild(opt(String(i+1),m)); });
+  });
+  [["startDay","Day"],["nextDay","Day"]].forEach(function(p){
+    var sel=document.getElementById(p[0]); sel.appendChild(opt("",p[1]));
+    for(var d=1;d<=31;d++) sel.appendChild(opt(String(d),ord(d)));
+  });
+  [["startYear","Year"],["nextYear","Year"]].forEach(function(p){
+    var sel=document.getElementById(p[0]); sel.appendChild(opt("",p[1]));
+    for(var y=yNow;y<=yNow+6;y++) sel.appendChild(opt(String(y),String(y)));
+  });
+})();
+
+var REL=["Spouse","Child","Parent","Sibling","Trust","Estate","Other"];
+function addBen(name, rel){
+  var wrap=document.getElementById("benWrap");
+  var row=document.createElement("div"); row.className="benrow";
+  var ni=document.createElement("input"); ni.type="text"; ni.className="ben-name"; ni.placeholder="Beneficiary name"; if(name) ni.value=name;
+  var rs=document.createElement("select"); rs.className="ben-rel";
+  rs.appendChild(opt("","Relationship")); REL.forEach(function(r){ var o=opt(r,r); if(rel===r) o.selected=true; rs.appendChild(o); });
+  var x=document.createElement("button"); x.type="button"; x.className="ben-x"; x.textContent="\u00d7"; x.onclick=function(){ row.remove(); };
+  row.appendChild(ni); row.appendChild(rs); row.appendChild(x);
+  wrap.appendChild(row);
+}
+addBen();
+
+function val(id){ return document.getElementById(id).value.trim(); }
+function fmtDate(m,d,y){ if(!m||!d||!y) return ""; return MONTHS[parseInt(m,10)-1]+" "+ord(d)+", "+y; }
+
+try {
+  var savedBase = localStorage.getItem("sc_base"); document.getElementById("base").value = savedBase || (location.protocol.indexOf("http")===0 ? location.origin : "");
+  var savedKey  = localStorage.getItem("sc_key");  if(savedKey)  document.getElementById("agentKey").value = savedKey;
+} catch(e){}
+
+function build(){
+  var base = val("base");
+  var agentKey = val("agentKey");
+  if(!base){ alert("Enter your site address first."); return; }
+  if(!agentKey){ alert("Enter your agent key first."); return; }
+  base = base.replace(/\/+$/,"");
+  if(!/^https?:\/\//i.test(base)) base = "https://" + base;
+  try { localStorage.setItem("sc_base", base); localStorage.setItem("sc_key", agentKey); } catch(e){}
+
+  var startD = val("startDay");
+  var o = {
+    name: val("name"),
+    coverage: val("coverage"),
+    premium: val("premium"),
+    start: fmtDate(val("startMonth"), startD, val("startYear")),
+    recurring: startD ? (ord(startD) + " of every month") : "",
+    next: fmtDate(val("nextMonth"), val("nextDay"), val("nextYear"))
+  };
+  Object.keys(o).forEach(function(k){ if(!o[k]) delete o[k]; });
+
+  var bens=[];
+  document.querySelectorAll("#benWrap .benrow").forEach(function(row){
+    var n=row.querySelector(".ben-name").value.trim();
+    var r=row.querySelector(".ben-rel").value.trim();
+    if(n) bens.push(r ? (n+" ("+r+")") : n);
+  });
+  if(bens.length) o.beneficiaries = bens;
+
+  var btn = document.getElementById("genBtn");
+  btn.disabled = true; btn.textContent = "Generating...";
+
+  fetch(base + "/.netlify/functions/create-link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agentKey: agentKey, details: o })
+  })
+  .then(function(r){ return r.json().then(function(j){ return { status:r.status, j:j }; }); })
+  .then(function(res){
+    btn.disabled = false; btn.textContent = "Generate link";
+    if(res.j && res.j.ok && res.j.code){
+      document.getElementById("url").value = base + "/c/" + res.j.code;
+      document.getElementById("out").style.display = "block";
+    } else if(res.status === 401){
+      alert("Agent key rejected. Check that it exactly matches the AGENT_KEY in Netlify.");
+    } else {
+      alert("Couldn't create the link: " + ((res.j && res.j.error) || "unknown error") + ". Make sure the site is deployed and AGENT_KEY is set.");
+    }
+  })
+  .catch(function(){ btn.disabled = false; btn.textContent = "Generate link"; alert("Network error. Check your site address."); });
+}
+function copyLink(){
+  var t = document.getElementById("url"); t.select();
+  navigator.clipboard.writeText(t.value).then(function(){}, function(){ document.execCommand("copy"); });
+}
+</script>
+</body>
+</html>
