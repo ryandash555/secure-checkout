@@ -1,8 +1,7 @@
 // Looks up a short code and returns the client's display details
 // (name, coverage, premium, dates, beneficiary) so the checkout page can show them.
-// These are the same non-sensitive details you typed in the link-builder.
 
-import { getStore } from "@netlify/blobs";
+import { connectLambda, getStore } from "@netlify/blobs";
 
 function json(statusCode, obj) {
   return {
@@ -13,6 +12,7 @@ function json(statusCode, obj) {
 }
 
 export const handler = async (event) => {
+  connectLambda(event);
   const code = (event.queryStringParameters && event.queryStringParameters.code) || "";
   if (!/^[0-9a-z]{4,12}$/.test(code)) return json(400, { ok: false, error: "Bad code" });
 
