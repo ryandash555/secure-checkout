@@ -42,7 +42,7 @@ async function agentCreds(agentId) {
       qid: OWNER_QID,
     };
   }
-  const agents = getStore({ name: "agents", consistency: "strong" });
+  const agents = getStore("agents");
   const raw = await agents.get(String(agentId));
   if (!raw) return null;
   const a = JSON.parse(raw);
@@ -71,7 +71,7 @@ export const handler = async (event) => {
   // Find the link -> owning agent + stored client details.
   let stored = null;
   if (d.code) {
-    try { const links = getStore({ name: "client-links", consistency: "strong" }); const raw = await links.get(String(d.code)); if (raw) stored = JSON.parse(raw); } catch (e) {}
+    try { const links = getStore("client-links"); const raw = await links.get(String(d.code)); if (raw) stored = JSON.parse(raw); } catch (e) {}
   }
   const agentId = stored && stored.agent ? stored.agent : "owner";
   const creds = await agentCreds(agentId);
