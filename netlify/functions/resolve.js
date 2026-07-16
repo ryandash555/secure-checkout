@@ -16,7 +16,7 @@ export const handler = async (event) => {
   const code = (event.queryStringParameters && event.queryStringParameters.code) || "";
   if (!/^[0-9a-z]{4,12}$/.test(code)) return json(400, { ok: false, error: "Bad code" });
 
-  const store = getStore({ name: "client-links", consistency: "strong" });
+  const store = getStore("client-links");
   const raw = await store.get(code);
   if (!raw) return json(404, { ok: false, error: "Not found" });
 
